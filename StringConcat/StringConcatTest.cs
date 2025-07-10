@@ -4,6 +4,14 @@ using System.Text;
 
 namespace StringConcat
 {
+    /// <summary>
+    /// 乱数の配列を生成し、指定された行数と列数に基づいて文字列を結合するベンチマークテスト。
+    /// </summary>
+    /// <remarks>
+    /// <para>各結合メソッドは 行番号: DLIMITER で区切られた文字列</para>
+    /// <para>例: 1: 0.12,0.34,0.56,...</para>
+    /// <para>Span.Slice, string.Chunk それぞれで文字列を抜き出すパターンで検証</para>
+    /// </remarks>
     [MemoryDiagnoser]
     public class StringConcatTest
     {
@@ -17,18 +25,21 @@ namespace StringConcat
             _data = GenerateRandomArray(_row * _col);
         }
        
-
+        /// <summary>
+        /// 乱数の生成
+        /// </summary>
+        /// <param name="size"></param>
+        /// <returns></returns>
         private static double[] GenerateRandomArray(int size)
         {
             Random random = new();
             return Enumerable.Range(0, size).Select(_ => random.NextDouble() * 2.0).ToArray();
         }
 
-        private void Write(IEnumerable<string> lines)
-        {
-            foreach (var line in lines) Console.WriteLine(line);
-        }
-
+        /// <summary>
+        /// Spanを使用して文字列を string.Join で結合するメソッド。
+        /// </summary>
+        /// <returns></returns>
         [Benchmark]
         public List<string> SpanStringJoin()
         {
@@ -38,26 +49,30 @@ namespace StringConcat
             {
                 Span<double> rowSpan = dataSpan.Slice(i * _col, _col);
                 string rowData = string.Join(DELIMITER, rowSpan.ToArray().Select(d => d.ToString("F2")));
-                result.Add($"{i + 1}: {rowData}");
+                result.Add($"{i + 1}: {rowData}"); // 行番号を追加
             }
             return result;
         }
 
+        /// <summary>
+        /// Spanを使用して文字列を StringBuilder で結合するメソッド。
+        /// </summary>
+        /// <returns></returns>
         [Benchmark]
         public List<string> SpanStringBuilder()
         {
             List<string> result = [];
             Span<double> dataSpan = _data.AsSpan();
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
 
             for (int i = 0; i < _row; i++)
             {
                 Span<double> rowSpan = dataSpan.Slice(i * _col, _col);
                 sb.Append(i + 1).Append(": "); // 行番号を追加
 
-                // 各要素を追加（最後の要素には区切り文字を付けない）
                 for (int j = 0; j < _col; j++)
                 {
+                    // 各要素を追加（最後の要素には区切り文字を付けない）
                     if (j > 0) sb.Append(DELIMITER);
                     sb.Append(rowSpan[j].ToString("F2"));
                 }
@@ -68,6 +83,10 @@ namespace StringConcat
             return result;
         }
 
+        /// <summary>
+        /// Spanを使用して文字列を DefaultInterpolatedStringHandler で結合するメソッド。
+        /// </summary>
+        /// <returns></returns>
         [Benchmark]
         public List<string> SpanDefaultInterpolatedStringHandler()
         {
@@ -77,12 +96,14 @@ namespace StringConcat
 
             for (int i = 0; i < _row; i++)
             {
+                // 行番号を追加
                 handler.AppendFormatted(i + 1);
                 handler.AppendLiteral(": ");
 
                 Span<double> rowSpan = dataSpan.Slice(i * _col, _col);
                 for (int j = 0; j < _col; j++)
                 {
+                    // 各要素を追加（最後の要素には区切り文字を付けない）
                     if (j > 0) handler.AppendLiteral(DELIMITER);
                     handler.AppendFormatted(rowSpan[j], "F2");
                 }
@@ -92,6 +113,10 @@ namespace StringConcat
             return result;
         }
 
+        /// <summary>
+        /// Chunkを使用して文字列を string.Join で結合するメソッド。
+        /// </summary>
+        /// <returns></returns>
         [Benchmark]
         public List<string> ChunkStringJoin()
         {
@@ -99,6 +124,10 @@ namespace StringConcat
             return result;
         }
 
+        /// <summary>
+        /// Chunkを使用して文字列を StringBuilder で結合するメソッド。
+        /// </summary>
+        /// <returns></returns>
         [Benchmark]
         public List<string> ChunkStringBuilder()
         {
@@ -117,6 +146,10 @@ namespace StringConcat
             return result;
         }
 
+        /// <summary>
+        /// Chunkを使用して文字列を DefaultInterpolatedStringHandler で結合するメソッド。
+        /// </summary>
+        /// <returns></returns>
         [Benchmark]
         public List<string> ChunkDefaultInterpolatedStringHandler()
         {
